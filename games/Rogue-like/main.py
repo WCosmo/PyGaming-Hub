@@ -1,3 +1,4 @@
+# --- Codigo para ler os controles ---
 import pygame
 import sys
 import os
@@ -40,7 +41,7 @@ except Exception as e:
         'A': pygame.K_o, 'B': pygame.K_p, 'PAUSE': pygame.K_RETURN
     }
 
-
+# --- imports de bibliotecas ---
 import pygame
 from settings import *
 from core.engine import Engine
@@ -49,7 +50,10 @@ from entities.enemy import Enemy
 from entities.boss import Boss
 from ui.game_over import GameOverScreen
 from sounds import *
+# --- usado para arazenar pontuação ---
 global_score = 0
+# --- main ---
+# cria objetos das classes
 def main():
     game = Engine()
     player = Player(400, 500)
@@ -64,11 +68,11 @@ def main():
     pygame.mixer.music.play(-1)
 
 
-
+# loop principal
     while True:
         game.window.fill((20, 20, 20))
         keys = pygame.key.get_pressed()
-
+        # --- inicializa eventos de QUIT ---
         for ev in pygame.event.get():
             if ev.type == pygame.KEYDOWN:
                 if ev.key ==pygame.K_RETURN and game_over:
@@ -107,8 +111,8 @@ def main():
                         player.hp -= 1
                         player.damage_timer = 100 # invencibilidade por 1 segundo
 
-
-                # Player bullets x enemy
+                
+                # jogador tiros vs inimigos
                 for p in projectiles:
                     if pygame.Rect(p.x,p.y,6,6).colliderect(
                             pygame.Rect(e.x,e.y,35,35)):
@@ -118,11 +122,11 @@ def main():
                             enemies.remove(e)
                             global_score += 1
 
-            # SPAWN BOSS
+            # spawn do boss
             if len(enemies) == 0 and boss is None:
                 boss = Boss()
 
-            # BOSS
+            # desenhas o boss é o bossProjectile da classe bossProjectile
             if boss:
                 boss.draw(game.window)
                 boss.shoot(boss_projectiles)
@@ -146,17 +150,18 @@ def main():
 
 
 
-
+                # --- volta para o main e reinicializa o jogo ---
+                # --- sujeito a mudanças caso seja criado outras fases ---
                 if boss.hp <= 0:
                     global_score += 10
                     return main()
 
-            # Player projectiles
+            # tiros jogador
             for p in projectiles:
                 p.move()
                 p.draw(game.window)
 
-            # Enemy projectiles
+            # tiros inimigos
             for ep in enemy_projectiles:
                 ep.move()
                 ep.draw(game.window)
@@ -165,12 +170,15 @@ def main():
                         pygame.Rect(player.x,player.y,40,40)):
                     player.hp -= 1
                     enemy_projectiles.remove(ep)
-            # Boss projectiles
+            #escrever na tela
             font = pygame.font.SysFont('arial', 24)
             life_text = font.render(f'vida : {player.hp}', True, (255, 0, 0))
             text = font.render(f'pontos : {global_score}', True, (255, 255, 0))
+            using = font.render(f'use O para acelerar', True, (0, 0, 255))
             game.window.blit(life_text, (10, 10))
             game.window.blit(text, (10, 40))
+            game.window.blit(using, (WIDTH // 2, 10))
+            # tiros boss
             for bp in boss_projectiles:
                 bp.move()
                 bp.draw(game.window)
@@ -189,7 +197,7 @@ def main():
                     boss_projectiles.remove(bp)
 
 
-            # CHECK GAME OVER
+            # # --- para a musica e reinicializa os pontos
             if player.hp <= 0:
                 global_score = 0
                 pygame.mixer.music.stop()
@@ -202,3 +210,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
