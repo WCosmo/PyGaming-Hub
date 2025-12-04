@@ -1,0 +1,239 @@
+import pygame
+import configparser
+import os
+import sys
+import time
+
+# ==========================================================
+# CARREGA O conf.ini DO CONSOLE
+# ==========================================================
+def load_config():
+    config = configparser.ConfigParser()
+    config.read(os.path.join("conf", "conf.ini"))
+
+    width = int(config["Display"]["width"])
+    height = int(config["Display"]["height"])
+
+    controls = {
+        "up": config["Controls"]["up"],
+        "down": config["Controls"]["down"],
+        "left": config["Controls"]["left"],
+        "right": config["Controls"]["right"],
+        "action_a": config["Controls"]["action_a"],
+        "pause": config["Controls"]["pause"]
+    }
+
+    keymap = {name: getattr(pygame, f"K_{value}") for name, value in controls.items()}
+    return width, height, keymap
+
+
+# ==========================================================
+# DESENHA X E O ANIMADOS
+# ==========================================================
+def draw_x(screen, x, y, size, progress):
+    # progress vai de 0 a 1 (animação)
+    line1_end = int(size * progress)
+    pygame.draw.line(screen, (230, 60, 60),
+                     (x, y), (x + line1_end, y + line1_end), 8)
+
+    if progress > 0.5:
+        # Segunda linha começa após metade da animação
+        p2 = (progress - 0.5) * 2
+        line2_end = int(size * p2)
+        pygame.draw.line(screen, (230, 60, 60),
+                         (x + size, y), (x + size - line2_end, y + line2_end), 8)
+
+
+def draw_o(screen, x, y, size, progress):
+    # Circulo crescendo
+    radius = int((size // 2) * progress)
+    pygame.draw.circle(screen, (60, 160, 255),
+                       (x + size // 2, y + size // 2), radius, 8)
+
+
+# ==========================================================
+# VERIFICA VITÓRIA
+# ==========================================================
+def check_win(grid):
+    # grid é 3x3 com 'X', 'O' ou vazio
+    for i in range(3):
+        # Linhas
+        if grid[i][0] == grid[i][1] == grid[i][2] != "":
+            return ("row", i, grid[i][0])
+        # Colunas
+        if grid[0][i] == grid[1][i] == grid[2][i] != "":
+            return ("col", i, grid[0][i])
+
+    # Diagonal principal
+    if grid[0][0] == grid[1][1] == grid[2][2] != "":
+        return ("diag_main", None, grid[0][0])
+
+    # Diagonal secundária
+    if grid[0][2] == grid[1][1] == grid[2][0] != "":
+        return ("diag_sec", None, grid[0][2])
+
+    return None
+
+
+# ==========================================================
+# JOGO PRINCIPAL
+# ==========================================================
+def main():
+    pygame.init()
+
+    width, height, keys = load_config()
+    screen = pygame.display.set_mode((width, height))
+    pygame.display.set_caption("Jogo da Velha Animado")
+
+    clock = pygame.time.Clock()
+
+    cell_size = min(width, height) // 4
+    offset_x = (width - cell_size * 3) // 2
+    offset_y = (height - cell_size * 3) // 2
+
+    cursor_x = 0
+    cursor_y = 0
+
+    grid = [["", "", ""],
+            ["", "", ""],
+            ["", "", ""]]
+
+    animations = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+    player = "X"
+    winner = None
+    running = True
+
+    # ==========================================================
+    # LOOP DO JOGO
+    # ==========================================================
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            # Pressionou PAUSE → sair
+            if event.type == pygame.KEYDOWN:
+                if event.key == keys["pause"]:
+                    running = False
+
+        # ----------------------------------------------------------
+        # MOVIMENTAÇÃO DO CURSOR PELO conf.ini
+        # ----------------------------------------------------------
+        teclas = pygame.key.get_pressed()
+
+        if teclas[keys["up"]] and cursor_y > 0:
+            cursor_y -= 1
+            time.sleep(0.15)
+
+        if teclas[keys["down"]] and cursor_y < 2:
+            cursor_y += 1
+            time.sleep(0.15)
+
+        if teclas[keys["left"]] and cursor_x > 0:
+            cursor_x -= 1
+            time.sleep(0.15)
+
+        if teclas[keys["right"]] and cursor_x < 2:
+            cursor_x += 1
+            time.sleep(0.15)
+
+        # ----------------------------------------------------------
+        # MARCAR X OU O COM action_a
+        # ----------------------------------------------------------
+        if teclas[keys["action_a"]] and grid[cursor_y][cursor_x] == "" and winner is None:
+            grid[cursor_y][cursor_x] = player
+            animations[cursor_y][cursor_x] = 0.01  # inicia animação
+
+            # troca jogador
+            player = "O" if player == "X" else "X"
+            time.sleep(0.15)
+
+        # ----------------------------------------------------------
+        # VERIFICAR VITÓRIA
+        # ----------------------------------------------------------
+        if winner is None:
+            wininfo = check_win(grid)
+            if wininfo:
+                winner = wininfo
+
+        # ----------------------------------------------------------
+        # DESENHO DA TELA
+        # ----------------------------------------------------------
+        screen.fill((25, 25, 25))
+
+        # Grade
+        for i in range(4):
+            pygame.draw.line(screen, (200, 200, 200),
+                             (offset_x, offset_y + i * cell_size),
+                             (offset_x + cell_size * 3, offset_y + i * cell_size), 5)
+
+            pygame.draw.line(screen, (200, 200, 200),
+                             (offset_x + i * cell_size, offset_y),
+                             (offset_x + i * cell_size, offset_y + cell_size * 3), 5)
+
+        # Cursor (destaque)
+        pygame.draw.rect(
+            screen,
+            (255, 255, 100),
+            (
+                offset_x + cursor_x * cell_size,
+                offset_y + cursor_y * cell_size,
+                cell_size, cell_size
+            ),
+            5
+        )
+
+        # Desenha peças com animações
+        for y in range(3):
+            for x in range(3):
+                if grid[y][x] != "":
+                    if animations[y][x] < 1:
+                        animations[y][x] += 0.05
+
+                    px = offset_x + x * cell_size
+                    py = offset_y + y * cell_size
+
+                    if grid[y][x] == "X":
+                        draw_x(screen, px + 20, py + 20, cell_size - 40, animations[y][x])
+                    else:
+                        draw_o(screen, px + 20, py + 20, cell_size - 40, animations[y][x])
+
+        # ----------------------------------------------------------
+        # Linha de vitória destacada
+        # ----------------------------------------------------------
+        if winner:
+            tipo, idx, p = winner
+            color = (255, 220, 80)
+
+            if tipo == "row":
+                y = offset_y + idx * cell_size + cell_size // 2
+                pygame.draw.line(screen, color,
+                                 (offset_x, y),
+                                 (offset_x + cell_size * 3, y), 10)
+
+            elif tipo == "col":
+                x = offset_x + idx * cell_size + cell_size // 2
+                pygame.draw.line(screen, color,
+                                 (x, offset_y),
+                                 (x, offset_y + cell_size * 3), 10)
+
+            elif tipo == "diag_main":
+                pygame.draw.line(screen, color,
+                                 (offset_x, offset_y),
+                                 (offset_x + cell_size * 3, offset_y + cell_size * 3), 10)
+
+            elif tipo == "diag_sec":
+                pygame.draw.line(screen, color,
+                                 (offset_x + cell_size * 3, offset_y),
+                                 (offset_x, offset_y + cell_size * 3), 10)
+
+        pygame.display.update()
+        clock.tick(60)
+
+    pygame.quit()
+    sys.exit()
+
+
+if __name__ == "__main__":
+    main()
