@@ -1,3 +1,4 @@
+
 import pygame, random
 import time
 import sys
@@ -58,22 +59,22 @@ pygame.display.set_caption("Jogo do Atirador Espacial")
 clock = pygame.time.Clock()
 
 # Cores 
-FUNDO_HUB_AZUL_ESCURO = (20, 20, 40)
-ROXO_JOGADOR = (120, 40, 160)
-AMARELO_BALA = (255, 255, 100)
+FUNDO_HUB_AZUL_ESCURO = (20, 20, 40)   
+ROXO_JOGADOR = (120, 40, 160)          
+AMARELO_BALA = (255, 255, 100)         
 BRANCO = (255, 255, 255)
-AZUL_1 = (0, 100, 255)
-VERMELHO_1 = (255, 50, 50)
-OURO = (255, 215, 0) 
+AZUL_BOTAO = (0, 100, 255)             
+VERMELHO_BOTAO = (255, 50, 50)         
+OURO_VITORIA = (255, 215, 0) 
 
-VERMELHO_2 = (180, 50, 50)
-VERDE = (80, 120, 80)
-LARANJA = (200, 100, 40)
-AZUL_2 = (50, 150, 200) 
-VERMELHO_3 = (220, 0, 0) 
-FOGO_MOTOR_VERM = (255, 100, 0)
+VERMELHO_TERRA = (180, 50, 50)         
+VERDE_MUSGO = (80, 120, 80)            
+LARANJA_SUAVE = (200, 100, 40)         
+AZUL_GELO = (50, 150, 200) 
+VERMELHO_DIAMANTE = (220, 0, 0) 
+FOGO_MOTOR_VERM = (255, 100, 0) # NOVO: Cor para a chama
 
-INIMIGO_CORES = [VERMELHO_2, VERDE, LARANJA] 
+INIMIGO_CORES = [VERMELHO_TERRA, VERDE_MUSGO, LARANJA_SUAVE] 
 OURO_ESTRELA = (255, 215, 0) 
 
 # Variáveis de Jogo
@@ -81,7 +82,7 @@ jogador_rect = pygame.Rect(LARGURA // 2 - 20, ALTURA - 50, 40, 40)
 velocidade_jogador_base = 8 
 velocidade_jogador = velocidade_jogador_base 
 
-velocidade_inimigo_base = 3.0
+velocidade_inimigo_base = 3.0 # NOVO: Começa em 3.0 para permitir incrementos decimais
 velocidade_inimigo = velocidade_inimigo_base
 
 balas = []
@@ -146,7 +147,6 @@ def reset_game():
     global jogador_rect, balas, inimigos, pontuacao, erros, game_running, game_over_screen, game_paused, game_won_screen
     global velocidade_jogador, velocidade_inimigo, FASE_ATUAL, tiro_triplo_ativo, slow_ativo, velocidade_bonus_ativa, timer_tiro_triplo, timer_slow, timer_velocidade
     global velocidade_inimigo_base
-    global msg_avanco_ativa
     
     jogador_rect = pygame.Rect(LARGURA // 2 - 20, ALTURA - 50, 40, 40)
     balas.clear()
@@ -166,7 +166,6 @@ def reset_game():
     tiro_triplo_ativo = False
     slow_ativo = False
     velocidade_bonus_ativa = False
-    msg_avanco_ativa = False
     
     timer_tiro_triplo = 0
     timer_slow = 0
@@ -291,16 +290,12 @@ while running:
         # Desativa Slow-Motion
         if slow_ativo and agora - timer_slow > TEMPO_POWER_UP:
             slow_ativo = False
-            velocidade_inimigo = velocidade_inimigo_base
+            velocidade_inimigo = velocidade_inimigo_base # Usa o valor de fase atualizado
         
         # Desativa Velocidade do Jogador
         if velocidade_bonus_ativa and agora - timer_velocidade > TEMPO_BONUS_VELOCIDADE:
             velocidade_bonus_ativa = False
             velocidade_jogador = velocidade_jogador_base
-            
-        # Desativa Mensagem de Avanço de Dase
-        if msg_avanco_ativa and agora - timer_msg_avanco > TEMPO_MSG_AVANCO:
-            msg_avanco_ativa = False
             
         # 4. Movimento do Jogador
         teclas = pygame.key.get_pressed()
@@ -318,7 +313,7 @@ while running:
                  
             ultimo_disparo = agora
             
-        # 6. Geração de Inimigos
+        # 6. Geração de Inimigos (A dificuldade do spawn diminui, a velocidade aumenta na função avancar_fase)
         fator_dificuldade = 1 - (FASE_ATUAL - 1) * 0.10 
         intervalo_spawn_atual = INTERVALO_SPAWN_BASE * fator_dificuldade
 
@@ -335,20 +330,20 @@ while running:
                     inimigos.append((pygame.Rect(x_aleatorio, 0, 40, 40), 'circle', cor_inimigo, 10))
             
             elif chance < 0.75: 
-                inimigos.append((pygame.Rect(x_aleatorio, 0, 45, 45), 'hexagon', VERDE, 25, 2)) 
+                inimigos.append((pygame.Rect(x_aleatorio, 0, 45, 45), 'hexagon', VERDE_MUSGO, 25, 2)) 
             
             elif chance < 0.9: 
                 if random.random() < 0.5:
-                    inimigos.append((pygame.Rect(x_aleatorio, 0, 40, 40), 'power_slow', AZUL_2, 0))
+                    inimigos.append((pygame.Rect(x_aleatorio, 0, 40, 40), 'power_slow', AZUL_GELO, 0))
                 else:
-                    inimigos.append((pygame.Rect(x_aleatorio, 0, 40, 40), 'power_triple', VERMELHO_3, 0))
+                    inimigos.append((pygame.Rect(x_aleatorio, 0, 40, 40), 'power_triple', VERMELHO_DIAMANTE, 0))
                     
             else: 
                 inimigos.append((pygame.Rect(x_aleatorio, 0, 50, 50), 'star', OURO_ESTRELA, 50))
                 
             ultimo_spawn = agora
             
-        # 7. Atualização de Posições
+        # 7. Atualização de Posições e Verificação de ERROS
         for bala in balas: bala.y -= 7
         balas = [b for b in balas if b.bottom > 0]
 
@@ -366,8 +361,6 @@ while running:
                 # Apenas inimigos de pontuação (square, circle, hexagon) causam erro.
                 if inimigo_type in ('square', 'circle', 'hexagon'):
                     erros += 1
-                else:
-                    pass # Power-ups apenas desaparecem ao sair da tela
             else:
                 inimigos_mantidos.append(inimigo_tuple)
                 
@@ -403,12 +396,12 @@ while running:
         balas = [b for b in balas if b not in balas_a_remover]
         inimigos = [e for e in inimigos if e not in inimigos_a_remover]
 
-        # 9. Verificação de Game Over
+        # 9. Verificação de Game Over e Avanço de Fase
         if erros >= VIDAS_MAX:
             game_running = False
             game_over_screen = True
             
-        # Verifica o avanço de fase
+        # Verifica o avanço de fase após a correção do erro de nome
         if FASE_ATUAL <= MAX_FASES and agora - tempo_inicial_fase >= TEMPO_FASE:
             avancar_fase()
             
@@ -419,7 +412,7 @@ while running:
         for x, y, size in estrelas:
             pygame.draw.circle(tela, BRANCO, (x, y), size)
         
-        # Desenha o FOGO do Motor
+        # Desenha o FOGO do Motor (NOVO)
         motor_offset = random.randint(-2, 2) # Oscilação
         chama_points = [
             (jogador_rect.centerx + motor_offset, jogador_rect.bottom + 1),
@@ -465,7 +458,7 @@ while running:
                  heart_points = [(heart_center_x, heart_center_y - 10), 
                                  (heart_center_x - 10, heart_center_y + 5), 
                                  (heart_center_x + 10, heart_center_y + 5)]
-                 pygame.draw.polygon(tela, VERMELHO_1, heart_points)
+                 pygame.draw.polygon(tela, VERMELHO_BOTAO, heart_points)
         
         # 2. Desenho de Textos de Placar
         texto_fase = fonte_placar.render(f"Fase: {FASE_ATUAL}/{MAX_FASES}", True, BRANCO)
@@ -484,10 +477,10 @@ while running:
             power_up_list.append(("Velocidade", tempo_restante_pu, OURO_ESTRELA))
         if tiro_triplo_ativo:
             tempo_restante_pu = (TEMPO_POWER_UP - (agora - timer_tiro_triplo)) // 1000 + 1
-            power_up_list.append(("Tiro Triplo", tempo_restante_pu, VERMELHO_3))
+            power_up_list.append(("Tiro Triplo", tempo_restante_pu, VERMELHO_DIAMANTE))
         if slow_ativo:
             tempo_restante_pu = (TEMPO_POWER_UP - (agora - timer_slow)) // 1000 + 1
-            power_up_list.append(("Slow", tempo_restante_pu, AZUL_2))
+            power_up_list.append(("Slow", tempo_restante_pu, AZUL_GELO))
             
         y_pu_pos = 65 
         for msg_txt, tempo_restante, cor in power_up_list:
@@ -512,10 +505,10 @@ while running:
     
     if game_over_screen:
         titulo_texto = "GAME OVER"
-        titulo_cor = VERMELHO_1
+        titulo_cor = VERMELHO_BOTAO
     elif game_won_screen:
         titulo_texto = "VITÓRIA! JOGO COMPLETO"
-        titulo_cor = OURO
+        titulo_cor = OURO_VITORIA
     else:
         pygame.display.flip()
         continue
@@ -533,11 +526,11 @@ while running:
     
     jogar_novamente_rect = desenhar_botao(tela, "Jogar Novamente", 
                                           (LARGURA / 2) - (botao_w / 2), ALTURA / 2 + 30, 
-                                          botao_w, botao_h, AZUL_1, BRANCO)
+                                          botao_w, botao_h, AZUL_BOTAO, BRANCO)
     
     sair_rect = desenhar_botao(tela, "Sair", 
                                (LARGURA / 2) - (botao_w / 2), ALTURA / 2 + 100, 
-                               botao_w, botao_h, VERMELHO_1, BRANCO)
+                               botao_w, botao_h, VERMELHO_BOTAO, BRANCO)
     
     pygame.display.flip()
 
