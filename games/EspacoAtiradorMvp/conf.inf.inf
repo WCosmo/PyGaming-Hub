@@ -1,0 +1,13 @@
+[Display]
+width = 1280
+height = 720
+fullscreen = False
+
+[Controls]
+up = w
+down = s
+left = a
+right = d
+action_a = o
+action_b = p
+pause = enter
